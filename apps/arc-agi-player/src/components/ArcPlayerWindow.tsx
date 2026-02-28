@@ -44,31 +44,68 @@ export function ArcPlayerWindow({ initialGameId }: ArcPlayerWindowProps) {
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sessionIdRef = useRef<string | null>(null);
+  const initPromiseRef = useRef<Promise<void> | null>(null);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeRef = useRef(false);
 
   // Start session on mount
   useEffect(() => {
+    activeRef.current = true;
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+    if (initPromiseRef.current) {
+      return () => {
+        activeRef.current = false;
+        const sid = sessionIdRef.current;
+        if (!sid) return;
+        closeTimerRef.current = setTimeout(() => {
+          void closeSession(sid);
+          if (sessionIdRef.current === sid) {
+            sessionIdRef.current = null;
+          }
+        }, 250);
+      };
+    }
+
     const gid = initialGameId ?? 'bt11-fd9df0622a1a';
 
-    async function init() {
+    initPromiseRef.current = (async () => {
       try {
         const result = await createSession({ source_url: 'arc-player-window' }).unwrap();
         const sid = result.session_id;
         sessionIdRef.current = sid;
+        if (!activeRef.current) {
+          void closeSession(sid);
+          return;
+        }
         dispatch(setSession({ sessionId: sid, gameId: gid }));
 
         const frame = await resetGame({ sessionId: sid, gameId: gid }).unwrap();
+        if (!activeRef.current) {
+          void closeSession(sid);
+          return;
+        }
         dispatch(setFrame(frame));
       } catch {
-        dispatch(setStatus('idle'));
+        if (activeRef.current) {
+          dispatch(setStatus('idle'));
+        }
+        initPromiseRef.current = null;
       }
-    }
-
-    init();
+    })();
 
     return () => {
-      if (sessionIdRef.current) {
-        closeSession(sessionIdRef.current);
-      }
+      activeRef.current = false;
+      const sid = sessionIdRef.current;
+      if (!sid) return;
+      closeTimerRef.current = setTimeout(() => {
+        void closeSession(sid);
+        if (sessionIdRef.current === sid) {
+          sessionIdRef.current = null;
+        }
+      }, 250);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [closeSession, createSession, dispatch, initialGameId, resetGame]);
