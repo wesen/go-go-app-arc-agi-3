@@ -31,7 +31,7 @@ func NewModuleWithRuntime(config ModuleConfig, driver ArcRuntimeDriver) (*Module
 	return &Module{
 		config: config,
 		driver: driver,
-		client: NewHTTPArcAPIClient(driver, config.RequestTimeout),
+		client: NewHTTPArcAPIClient(driver, config.RequestTimeout, config.APIKey),
 		events: NewSessionEventStore(config.MaxSessionEvents),
 	}, nil
 }
