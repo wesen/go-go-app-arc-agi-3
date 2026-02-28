@@ -27,6 +27,26 @@
   font-size: 13px;
 }
 
+[data-widget="hypercard"] [data-part="arc-player-game-picker"] {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+[data-widget="hypercard"] [data-part="arc-player-game-picker-label"] {
+  color: var(--hc-text-secondary, #999);
+}
+
+[data-widget="hypercard"] [data-part="arc-player-game-select"] {
+  font: inherit;
+  color: var(--hc-text, #eee);
+  background: var(--hc-surface, #111);
+  border: 1px solid var(--hc-border, #333);
+  border-radius: 4px;
+  padding: 2px 6px;
+  max-width: 260px;
+}
+
 [data-widget="hypercard"] [data-part="arc-player-level"] {
   color: var(--hc-text-secondary, #999);
 }

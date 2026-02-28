@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   useCloseSessionMutation,
   useCreateSessionMutation,
+  useGetGamesQuery,
   usePerformActionMutation,
   useResetGameMutation,
 } from '../api/arcApi';
@@ -41,6 +42,7 @@ export function ArcPlayerWindow({ initialGameId }: ArcPlayerWindowProps) {
   const [resetGame] = useResetGameMutation();
   const [performAction] = usePerformActionMutation();
   const [closeSession] = useCloseSessionMutation();
+  const { data: availableGames = [] } = useGetGamesQuery();
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sessionIdRef = useRef<string | null>(null);
@@ -155,6 +157,28 @@ export function ArcPlayerWindow({ initialGameId }: ArcPlayerWindowProps) {
     }
   }, [sessionId, gameId, resetGame, dispatch]);
 
+  const gameOptions = useMemo(() => {
+    const fromAPI = availableGames.map((g) => g.game_id).filter((id): id is string => typeof id === 'string' && id.length > 0);
+    const pinned = [gameId, initialGameId].filter((id): id is string => typeof id === 'string' && id.length > 0);
+    return Array.from(new Set([...pinned, ...fromAPI]));
+  }, [availableGames, gameId, initialGameId]);
+
+  const handleGameChange = useCallback(
+    async (nextGameId: string) => {
+      if (!sessionId) return;
+      if (!nextGameId || nextGameId === gameId) return;
+      dispatch(setSession({ sessionId, gameId: nextGameId }));
+      try {
+        const frame = await resetGame({ sessionId, gameId: nextGameId }).unwrap();
+        dispatch(setFrame(frame));
+        dispatch(clearHistory());
+      } catch {
+        dispatch(setStatus('idle'));
+      }
+    },
+    [dispatch, gameId, resetGame, sessionId],
+  );
+
   const handleCellClick = useCallback(
     (row: number, col: number) => {
       if (!currentFrame?.available_actions.includes('ACTION6')) return;
@@ -167,9 +191,7 @@ export function ArcPlayerWindow({ initialGameId }: ArcPlayerWindowProps) {
   const gameName = gameId?.split('-')[0]?.toUpperCase() ?? 'ARC-AGI';
   const winLevels = Array.isArray(currentFrame?.win_levels) ? currentFrame.win_levels : [];
   const targetLevel = winLevels.length > 0 ? Math.max(...winLevels) : 1;
-  const levelDisplay = currentFrame
-    ? `Level ${currentFrame.levels_completed}/${targetLevel}`
-    : '';
+  const levelDisplay = currentFrame ? (winLevels.length > 0 ? `Level ${currentFrame.levels_completed}/${targetLevel}` : `Level ${currentFrame.levels_completed}`) : '';
 
   if (status === 'idle' || status === 'loading') {
     return (
@@ -186,6 +208,22 @@ export function ArcPlayerWindow({ initialGameId }: ArcPlayerWindowProps) {
     <div data-part="arc-player-window">
       <div data-part="arc-player-header">
         <span data-part="arc-player-title">{gameName}</span>
+        <label data-part="arc-player-game-picker">
+          <span data-part="arc-player-game-picker-label">Game</span>
+          <select
+            data-part="arc-player-game-select"
+            value={gameId ?? gameOptions[0] ?? ''}
+            onChange={(event) => {
+              void handleGameChange(event.currentTarget.value);
+            }}
+          >
+            {gameOptions.map((id) => (
+              <option key={id} value={id}>
+                {id}
+              </option>
+            ))}
+          </select>
+        </label>
         <span data-part="arc-player-level">{levelDisplay}</span>
         <span data-part="arc-player-timer">
           {'\u25F7'} {formatTime(elapsedSeconds)}
