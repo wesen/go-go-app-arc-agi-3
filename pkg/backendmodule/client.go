@@ -105,7 +105,27 @@ func (c *HTTPArcAPIClient) Reset(ctx context.Context, sessionID, gameID string) 
 	if err := c.requestJSON(ctx, http.MethodPost, "/api/cmd/RESET", body, &payload); err != nil {
 		return nil, err
 	}
-	return payload, nil
+	if !needsSecondReset(payload) {
+		return payload, nil
+	}
+	guid, ok := payload["guid"].(string)
+	guid = strings.TrimSpace(guid)
+	if !ok || guid == "" {
+		return payload, nil
+	}
+
+	body["guid"] = guid
+	var activated map[string]any
+	if err := c.requestJSON(ctx, http.MethodPost, "/api/cmd/RESET", body, &activated); err != nil {
+		return nil, err
+	}
+	if activated == nil {
+		activated = map[string]any{}
+	}
+	if _, hasGuid := activated["guid"]; !hasGuid {
+		activated["guid"] = guid
+	}
+	return activated, nil
 }
 
 func (c *HTTPArcAPIClient) Action(ctx context.Context, sessionID, gameID, action string, payload map[string]any) (map[string]any, error) {
@@ -198,4 +218,20 @@ func normalizeActionName(raw string) string {
 	default:
 		return action
 	}
+}
+
+func needsSecondReset(payload map[string]any) bool {
+	if payload == nil {
+		return false
+	}
+	state, _ := payload["state"].(string)
+	state = strings.ToUpper(strings.TrimSpace(state))
+	actions := payload["available_actions"]
+	if list, ok := actions.([]any); ok && len(list) > 0 {
+		return false
+	}
+	if list, ok := actions.([]string); ok && len(list) > 0 {
+		return false
+	}
+	return state == "" || state == "IDLE"
 }
