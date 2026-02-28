@@ -48,6 +48,17 @@ defineStackBundle(({ ui }) => {
     dispatchSystemCommand('notify', { message: String(message || '') });
   }
 
+  function canonicalAction(raw) {
+    const token = String(raw || '').trim().toLowerCase();
+    if (token === 'up') return 'ACTION1';
+    if (token === 'down') return 'ACTION2';
+    if (token === 'left') return 'ACTION3';
+    if (token === 'right') return 'ACTION4';
+    if (/^action[1-7]$/i.test(token)) return token.toUpperCase();
+    if (/^[1-7]$/.test(token)) return 'ACTION' + token;
+    return token ? String(raw).trim() : 'ACTION1';
+  }
+
   return {
     id: 'arc-agi-demo',
     title: 'ARC Demo Card',
@@ -177,7 +188,7 @@ defineStackBundle(({ ui }) => {
               return;
             }
 
-            const action = String(asRecord(args).action || 'up');
+            const action = canonicalAction(asRecord(args).action || 'up');
             const requestId = nextRequestId('arc-action');
             dispatchSessionAction('patch', {
               arcStatus: 'requested',

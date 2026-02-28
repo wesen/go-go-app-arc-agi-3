@@ -81,3 +81,41 @@ func TestHTTPArcAPIClientReset_DoesNotDoubleResetWhenActive(t *testing.T) {
 	require.EqualValues(t, 1, atomic.LoadInt32(&resetCalls))
 	require.Equal(t, "RUNNING", frame["state"])
 }
+
+func TestNormalizeActionName_DirectionalAliases(t *testing.T) {
+	tests := []struct {
+		name  string
+		in    string
+		want  string
+	}{
+		{name: "up-lower", in: "up", want: "ACTION1"},
+		{name: "up-upper", in: "UP", want: "ACTION1"},
+		{name: "down-lower", in: "down", want: "ACTION2"},
+		{name: "left-lower", in: "left", want: "ACTION3"},
+		{name: "right-lower", in: "right", want: "ACTION4"},
+		{name: "numeric-alias", in: "3", want: "ACTION3"},
+		{name: "already-canonical", in: "ACTION6", want: "ACTION6"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.want, normalizeActionName(tc.in))
+		})
+	}
+}
+
+func TestHTTPArcAPIClientAction_UsesCanonicalDirectionalAlias(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.Equal(t, http.MethodPost, r.Method)
+		require.Equal(t, "/api/cmd/ACTION1", r.URL.Path)
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"guid": "guid-1",
+		})
+	}))
+	defer srv.Close()
+
+	client := NewHTTPArcAPIClient(&testDriver{baseURL: srv.URL}, 0, "")
+	_, err := client.Action(context.Background(), "session-1", "bt11", "up", map[string]any{})
+	require.NoError(t, err)
+}

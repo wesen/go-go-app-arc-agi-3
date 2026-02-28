@@ -215,6 +215,14 @@ func normalizeActionName(raw string) string {
 	switch action {
 	case "1", "2", "3", "4", "5", "6", "7":
 		return "ACTION" + action
+	case "UP":
+		return "ACTION1"
+	case "DOWN":
+		return "ACTION2"
+	case "LEFT":
+		return "ACTION3"
+	case "RIGHT":
+		return "ACTION4"
 	default:
 		return action
 	}
