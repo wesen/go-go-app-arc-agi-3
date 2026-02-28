@@ -1,4 +1,5 @@
 export type ArcCommandOp =
+  | 'list-games'
   | 'create-session'
   | 'reset-game'
   | 'perform-action'
@@ -95,7 +96,14 @@ export interface ArcBridgeState {
   recentErrors: ArcCommandError[];
 }
 
-const ALLOWED_OPS: ArcCommandOp[] = ['create-session', 'reset-game', 'perform-action', 'load-timeline', 'load-events'];
+const ALLOWED_OPS: ArcCommandOp[] = [
+  'list-games',
+  'create-session',
+  'reset-game',
+  'perform-action',
+  'load-timeline',
+  'load-events',
+];
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);

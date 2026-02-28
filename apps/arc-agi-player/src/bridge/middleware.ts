@@ -87,6 +87,10 @@ function asObject(value: unknown): Record<string, unknown> {
   return isRecord(value) ? value : {};
 }
 
+function asArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
 function mergeMeta(payload: ArcCommandRequestPayload, actionMeta?: RuntimeActionMeta): ArcCommandMeta {
   return {
     ...payload.meta,
@@ -153,6 +157,22 @@ async function requestJson(fetchImpl: typeof fetch, url: string, init: RequestIn
   return asObject(payload);
 }
 
+async function requestUnknown(fetchImpl: typeof fetch, url: string, init: RequestInit): Promise<unknown> {
+  const response = await fetchImpl(url, init);
+  const payload = await parseResponsePayload(response);
+
+  if (!response.ok) {
+    throw {
+      code: 'http_error',
+      message: `ARC request failed (${response.status})`,
+      status: response.status,
+      details: payload,
+    };
+  }
+
+  return payload;
+}
+
 function inferSessionId(payload: ArcCommandRequestPayload, result: Record<string, unknown>): string | undefined {
   return (
     asString(result.session_id) ??
@@ -176,6 +196,15 @@ async function executeArcCommand(
   fetchImpl: typeof fetch,
 ): Promise<ArcBridgeExecutionResult> {
   const args = asObject(payload.args);
+
+  if (payload.op === 'list-games') {
+    const games = await requestUnknown(fetchImpl, '/api/apps/arc-agi/games', { method: 'GET' });
+    return {
+      result: {
+        games: asArray(games),
+      },
+    };
+  }
 
   if (payload.op === 'create-session') {
     const result = await requestJson(fetchImpl, '/api/apps/arc-agi/sessions', {
@@ -346,6 +375,7 @@ function mirrorRuntimeSessionState(
 
 function buildSuccessRuntimePatch(
   requestId: string,
+  op: ArcCommandRequestPayload['op'],
   execution: ArcBridgeExecutionResult,
 ): Record<string, unknown> {
   const patch: Record<string, unknown> = {
@@ -362,6 +392,15 @@ function buildSuccessRuntimePatch(
   }
   if (gameId) {
     patch.arcGameId = gameId;
+  }
+  if (op === 'list-games') {
+    const availableGames = asArray(execution.result.games)
+      .map((item) => {
+        const game = asObject(item);
+        return asString(game.game_id) ?? asString(game.gameId) ?? asString(game.id);
+      })
+      .filter((value): value is string => typeof value === 'string' && value.length > 0);
+    patch.arcAvailableGames = Array.from(new Set(availableGames));
   }
 
   return patch;
@@ -465,7 +504,7 @@ export function createArcBridgeMiddleware(options: ArcBridgeMiddlewareOptions = 
           }),
         );
 
-        mirrorRuntimeSessionState(store.dispatch, meta, buildSuccessRuntimePatch(payload.requestId, execution));
+        mirrorRuntimeSessionState(store.dispatch, meta, buildSuccessRuntimePatch(payload.requestId, payload.op, execution));
       } catch (error) {
         const normalized = normalizeError(error);
         store.dispatch(

@@ -34,6 +34,10 @@ function asObject(value: unknown): Record<string, unknown> {
   return isRecord(value) ? value : {};
 }
 
+function asArray(value: unknown): unknown[] {
+  return Array.isArray(value) ? value : [];
+}
+
 function asString(value: unknown): string | undefined {
   if (typeof value === 'string' && value.length > 0) {
     return value;
@@ -91,6 +95,22 @@ async function requestJson(url: string, init: RequestInit): Promise<Record<strin
   return asObject(payload);
 }
 
+async function requestUnknown(url: string, init: RequestInit): Promise<unknown> {
+  const response = await fetch(url, init);
+  const payload = await parseResponsePayload(response);
+
+  if (!response.ok) {
+    throw {
+      code: 'http_error',
+      message: `ARC request failed (${response.status})`,
+      status: response.status,
+      details: payload,
+    };
+  }
+
+  return payload;
+}
+
 function normalizeError(error: unknown): { code: string; message: string; status?: number; details?: unknown } {
   if (isRecord(error)) {
     return {
@@ -139,6 +159,11 @@ async function executeArcCommand(payload: ArcCommandRequestPayload): Promise<{
   gameState?: string;
 }> {
   const args = asObject(payload.args);
+
+  if (payload.op === 'list-games') {
+    const payload = await requestUnknown('/api/apps/arc-agi/games', { method: 'GET' });
+    return { result: { games: asArray(payload) } };
+  }
 
   if (payload.op === 'create-session') {
     const result = await requestJson('/api/apps/arc-agi/sessions', {
@@ -217,7 +242,24 @@ function mirrorRuntimeSessionState(
   );
 }
 
-function buildSuccessRuntimePatch(requestId: string, execution: { sessionId?: string; gameId?: string; result: Record<string, unknown> }) {
+function extractGameIds(result: Record<string, unknown>): string[] {
+  const seen = new Set<string>();
+  const games = asArray(result.games);
+  for (const item of games) {
+    const game = asObject(item);
+    const gameId = asString(game.game_id) ?? asString(game.gameId) ?? asString(game.id);
+    if (gameId) {
+      seen.add(gameId);
+    }
+  }
+  return Array.from(seen);
+}
+
+function buildSuccessRuntimePatch(
+  requestId: string,
+  op: ArcCommandRequestPayload['op'],
+  execution: { sessionId?: string; gameId?: string; result: Record<string, unknown> },
+) {
   const patch: Record<string, unknown> = {
     arcStatus: 'succeeded',
     arcLastRequestId: requestId,
@@ -230,6 +272,9 @@ function buildSuccessRuntimePatch(requestId: string, execution: { sessionId?: st
   }
   if (execution.gameId) {
     patch.arcGameId = execution.gameId;
+  }
+  if (op === 'list-games') {
+    patch.arcAvailableGames = extractGameIds(execution.result);
   }
 
   return patch;
@@ -328,7 +373,7 @@ export function ArcPendingIntentEffectHost() {
           dispatch as any,
           nextIntent.sessionId,
           nextIntent.cardId,
-          buildSuccessRuntimePatch(payload.requestId, execution),
+          buildSuccessRuntimePatch(payload.requestId, payload.op, execution),
         );
       })
       .catch((error) => {
