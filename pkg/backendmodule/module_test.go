@@ -163,11 +163,11 @@ func TestModule_NormalizesFramePayloadsAtHTTPBoundary(t *testing.T) {
 		},
 		actionResponse: map[string]any{
 			"guid":             "guid-raw",
-			"state":            "RUNNING",
+			"state":            "active",
 			"levels_completed": 2.0,
 			"win_levels":       []any{1, "x", 3.0},
 			"available_actions": []any{
-				"ACTION1", 7,
+				1, "ACTION6", map[string]any{"id": 3}, 7, "x",
 			},
 			"frame": []any{
 				[]any{1, "x", 3.0},
@@ -203,9 +203,10 @@ func TestModule_NormalizesFramePayloadsAtHTTPBoundary(t *testing.T) {
 	var actionPayload map[string]any
 	require.NoError(t, json.NewDecoder(actionRR.Body).Decode(&actionPayload))
 	require.Equal(t, "ACTION1", actionPayload["action"])
+	require.Equal(t, "RUNNING", actionPayload["state"])
 	require.EqualValues(t, float64(2), actionPayload["levels_completed"])
 	require.Equal(t, []any{float64(1), float64(0), float64(3)}, actionPayload["win_levels"])
-	require.Equal(t, []any{"ACTION1"}, actionPayload["available_actions"])
+	require.Equal(t, []any{"ACTION1", "ACTION6", "ACTION3", "ACTION7"}, actionPayload["available_actions"])
 	require.Equal(t, []any{
 		[]any{float64(1), float64(0), float64(3)},
 		[]any{},

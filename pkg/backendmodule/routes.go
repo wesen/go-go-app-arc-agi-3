@@ -276,9 +276,27 @@ func normalizeFrameEnvelope(frame map[string]any, sessionID, gameID, action stri
 
 func normalizeGameState(value any) string {
 	state := strings.ToUpper(strings.TrimSpace(asString(value)))
+	if state == "" {
+		switch coerceInt(value) {
+		case 1:
+			return "RUNNING"
+		case 2:
+			return "WON"
+		case 3:
+			return "LOST"
+		case 0:
+			return "IDLE"
+		}
+	}
 	switch state {
-	case "RUNNING", "WON", "LOST", "IDLE":
-		return state
+	case "RUNNING", "ACTIVE", "PLAYING", "IN_PROGRESS":
+		return "RUNNING"
+	case "WON", "WIN", "COMPLETED", "SUCCESS":
+		return "WON"
+	case "LOST", "LOSS", "FAILED", "FAILURE", "DONE":
+		return "LOST"
+	case "IDLE", "READY", "NOT_STARTED":
+		return "IDLE"
 	default:
 		return "IDLE"
 	}
@@ -288,20 +306,69 @@ func normalizeStringSlice(value any) []string {
 	items, ok := value.([]any)
 	if !ok {
 		if typed, ok := value.([]string); ok {
-			return append([]string(nil), typed...)
+			ret := make([]string, 0, len(typed))
+			for _, item := range typed {
+				if action, ok := normalizeActionToken(item); ok {
+					ret = append(ret, action)
+				}
+			}
+			return ret
 		}
 		return []string{}
 	}
 	ret := make([]string, 0, len(items))
 	for _, item := range items {
-		if s, ok := item.(string); ok {
-			s = strings.TrimSpace(s)
-			if s != "" {
-				ret = append(ret, s)
-			}
+		if action, ok := normalizeActionToken(item); ok {
+			ret = append(ret, action)
 		}
 	}
 	return ret
+}
+
+func normalizeActionToken(value any) (string, bool) {
+	switch v := value.(type) {
+	case string:
+		action := normalizeActionName(v)
+		if isSupportedAction(action) {
+			return action, true
+		}
+	case map[string]any:
+		if action, ok := normalizeActionToken(v["id"]); ok {
+			return action, true
+		}
+	case float64:
+		action := normalizeActionName(strconv.Itoa(int(v)))
+		if isSupportedAction(action) {
+			return action, true
+		}
+	case int:
+		action := normalizeActionName(strconv.Itoa(v))
+		if isSupportedAction(action) {
+			return action, true
+		}
+	case int64:
+		action := normalizeActionName(strconv.FormatInt(v, 10))
+		if isSupportedAction(action) {
+			return action, true
+		}
+	case json.Number:
+		if i, err := v.Int64(); err == nil {
+			action := normalizeActionName(strconv.FormatInt(i, 10))
+			if isSupportedAction(action) {
+				return action, true
+			}
+		}
+	}
+	return "", false
+}
+
+func isSupportedAction(action string) bool {
+	switch strings.TrimSpace(action) {
+	case "ACTION1", "ACTION2", "ACTION3", "ACTION4", "ACTION5", "ACTION6", "ACTION7":
+		return true
+	default:
+		return false
+	}
 }
 
 func normalizeIntSlice(value any) []int {
