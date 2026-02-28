@@ -74,6 +74,7 @@ func (s *SessionEventStore) Timeline(sessionID string) map[string]any {
 	events := s.ListAfter(sessionID, 0)
 	counts := map[string]int{}
 	items := make([]map[string]any, 0, len(events))
+	status := "active"
 	for _, event := range events {
 		counts[event.Type]++
 		items = append(items, map[string]any{
@@ -81,10 +82,13 @@ func (s *SessionEventStore) Timeline(sessionID string) map[string]any {
 			"type":    event.Type,
 			"summary": event.Summary,
 		})
+		if event.Type == "arc.session.closed" {
+			status = "closed"
+		}
 	}
 	return map[string]any{
 		"session_id": sessionID,
-		"status":     "active",
+		"status":     status,
 		"counts":     counts,
 		"items":      items,
 	}

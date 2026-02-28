@@ -9,10 +9,11 @@ import (
 )
 
 type Module struct {
-	config ModuleConfig
-	driver ArcRuntimeDriver
-	client ArcAPIClient
-	events *SessionEventStore
+	config   ModuleConfig
+	driver   ArcRuntimeDriver
+	client   ArcAPIClient
+	events   *SessionEventStore
+	sessions *SessionStore
 }
 
 func NewModule(config ModuleConfig) (*Module, error) {
@@ -29,10 +30,11 @@ func NewModuleWithRuntime(config ModuleConfig, driver ArcRuntimeDriver) (*Module
 	}
 	config = normalizeConfig(config)
 	return &Module{
-		config: config,
-		driver: driver,
-		client: NewHTTPArcAPIClient(driver, config.RequestTimeout, config.APIKey),
-		events: NewSessionEventStore(config.MaxSessionEvents),
+		config:   config,
+		driver:   driver,
+		client:   NewHTTPArcAPIClient(driver, config.RequestTimeout, config.APIKey),
+		events:   NewSessionEventStore(config.MaxSessionEvents),
+		sessions: NewSessionStore(),
 	}, nil
 }
 
