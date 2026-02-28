@@ -7,6 +7,7 @@ import { useRef } from 'react';
 import { Provider } from 'react-redux';
 
 import { createArcPlayerStore } from '../app/store';
+import { ArcPendingIntentEffectHost } from '../bridge/ArcPendingIntentEffectHost';
 import { ArcPlayerWindow } from '../components/ArcPlayerWindow';
 import { ARC_DEMO_STACK } from '../domain/stack';
 
@@ -106,11 +107,14 @@ function createArcDemoCardAdapter(): WindowContentAdapter {
       }
 
       return (
-        <PluginCardSessionHost
-          windowId={window.id}
-          sessionId={window.content.card.cardSessionId}
-          stack={ARC_DEMO_STACK}
-        />
+        <>
+          <ArcPendingIntentEffectHost />
+          <PluginCardSessionHost
+            windowId={window.id}
+            sessionId={window.content.card.cardSessionId}
+            stack={ARC_DEMO_STACK}
+          />
+        </>
       );
     },
   };
