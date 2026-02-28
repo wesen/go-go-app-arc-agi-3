@@ -128,8 +128,10 @@ export function ArcPlayerWindow({ initialGameId }: ArcPlayerWindowProps) {
 
   // Title bar info
   const gameName = gameId?.split('-')[0]?.toUpperCase() ?? 'ARC-AGI';
+  const winLevels = Array.isArray(currentFrame?.win_levels) ? currentFrame.win_levels : [];
+  const targetLevel = winLevels.length > 0 ? Math.max(...winLevels) : 1;
   const levelDisplay = currentFrame
-    ? `Level ${currentFrame.levels_completed}/${Math.max(...currentFrame.win_levels, 1)}`
+    ? `Level ${currentFrame.levels_completed}/${targetLevel}`
     : '';
 
   if (status === 'idle' || status === 'loading') {
