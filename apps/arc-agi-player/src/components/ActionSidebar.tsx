@@ -67,6 +67,8 @@ export function ActionSidebar({
   onUndo,
 }: ActionSidebarProps) {
   const isGameOver = gameState === 'WON' || gameState === 'LOST';
+  const gridClickEnabled = !isGameOver && availableActions.includes('ACTION6');
+  const sidebarActions = (['ACTION5', 'ACTION7'] as const).filter((action) => availableActions.includes(action));
 
   return (
     <div data-part="arc-sidebar">
@@ -74,23 +76,31 @@ export function ActionSidebar({
 
       <DPad availableActions={availableActions} onAction={onAction} />
 
-      <div data-part="arc-sidebar-actions">
-        {(['ACTION5', 'ACTION6'] as const).map((a) => {
-          const enabled = !isGameOver && availableActions.includes(a);
-          return (
-            <button
-              key={a}
-              type="button"
-              data-part="arc-action-button"
-              data-state={enabled ? undefined : 'disabled'}
-              disabled={!enabled}
-              onClick={() => onAction(a)}
-            >
-              {actionGlyph(a)}
-            </button>
-          );
-        })}
-      </div>
+      {sidebarActions.length > 0 && (
+        <div data-part="arc-sidebar-actions">
+          {sidebarActions.map((a) => {
+            const enabled = !isGameOver;
+            return (
+              <button
+                key={a}
+                type="button"
+                data-part="arc-action-button"
+                data-state={enabled ? undefined : 'disabled'}
+                disabled={!enabled}
+                onClick={() => onAction(a)}
+              >
+                {actionGlyph(a)}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {gridClickEnabled && (
+        <div data-part="arc-action6-hint">
+          A6 enabled: click a cell in the grid.
+        </div>
+      )}
 
       <div data-part="arc-sidebar-controls">
         {onUndo && (
