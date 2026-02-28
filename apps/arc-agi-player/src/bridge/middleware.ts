@@ -1,6 +1,6 @@
 import { showToast } from '@hypercard/engine';
 import { authorizeDomainIntent, ingestRuntimeIntent } from '@hypercard/hypercard-runtime';
-import type { Middleware } from '@reduxjs/toolkit';
+import type { Dispatch, Middleware, UnknownAction } from '@reduxjs/toolkit';
 import {
   arcCommandFailed,
   arcCommandStarted,
@@ -369,7 +369,7 @@ function shouldSkipDuplicate(state: RootStateLike, requestId: string): boolean {
 }
 
 function mirrorRuntimeSessionState(
-  dispatch: (action: unknown) => unknown,
+  dispatch: Dispatch<UnknownAction>,
   meta: ArcCommandMeta,
   payload: Record<string, unknown>,
 ) {
