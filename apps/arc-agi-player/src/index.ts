@@ -1,5 +1,6 @@
 // API hooks
 export { arcApi, useGetGamesQuery, usePerformActionMutation, useResetGameMutation } from './api/arcApi';
+export * from './bridge';
 
 // Store
 export { type AppDispatch, createArcPlayerStore, type RootState } from './app/store';

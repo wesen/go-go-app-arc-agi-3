@@ -7,12 +7,15 @@ import {
 import { windowingReducer } from '@hypercard/engine/desktop-core';
 import { configureStore } from '@reduxjs/toolkit';
 import { arcApi } from '../api/arcApi';
+import { arcBridgeReducer, createArcBridgeMiddleware } from '../bridge';
 import arcPlayerReducer from '../features/arcPlayer/arcPlayerSlice';
 
 function createArcPlayerStore() {
+  const arcBridgeMiddleware = createArcBridgeMiddleware();
   return configureStore({
     reducer: {
       pluginCardRuntime: pluginCardRuntimeReducer,
+      arcBridge: arcBridgeReducer,
       windowing: windowingReducer,
       notifications: notificationsReducer,
       debug: debugReducer,
@@ -20,7 +23,7 @@ function createArcPlayerStore() {
       arcPlayer: arcPlayerReducer,
       [arcApi.reducerPath]: arcApi.reducer,
     },
-    middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(arcApi.middleware),
+    middleware: (getDefaultMiddleware) => getDefaultMiddleware().concat(arcBridgeMiddleware, arcApi.middleware),
   });
 }
 
