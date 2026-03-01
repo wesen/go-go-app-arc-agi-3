@@ -251,6 +251,18 @@ func TestModule_ReflectionAndSchemas(t *testing.T) {
 	require.Equal(t, AppID, doc.AppID)
 	require.NotEmpty(t, doc.APIs)
 	require.NotEmpty(t, doc.Schemas)
+	require.NotEmpty(t, doc.Docs)
+	require.NotNil(t, module.DocStore())
+	require.Equal(t, 4, module.DocStore().Count())
+
+	apiIDs := map[string]struct{}{}
+	for _, api := range doc.APIs {
+		apiIDs[api.ID] = struct{}{}
+	}
+	_, hasDocsList := apiIDs["docs-list"]
+	_, hasDocsGet := apiIDs["docs-get"]
+	require.True(t, hasDocsList)
+	require.True(t, hasDocsGet)
 
 	mux := http.NewServeMux()
 	require.NoError(t, module.MountRoutes(mux))
@@ -263,4 +275,24 @@ func TestModule_ReflectionAndSchemas(t *testing.T) {
 	var payload map[string]any
 	require.NoError(t, json.NewDecoder(rr.Body).Decode(&payload))
 	require.Equal(t, "object", payload["type"])
+}
+
+func TestModule_DocsEndpoints(t *testing.T) {
+	module := newModuleForTests(t)
+	mux := http.NewServeMux()
+	require.NoError(t, module.MountRoutes(mux))
+
+	tocReq := httptest.NewRequest(http.MethodGet, "/docs", nil)
+	tocRes := httptest.NewRecorder()
+	mux.ServeHTTP(tocRes, tocReq)
+	require.Equal(t, http.StatusOK, tocRes.Code)
+	require.Contains(t, tocRes.Body.String(), `"module_id":"arc-agi"`)
+	require.Contains(t, tocRes.Body.String(), `"slug":"overview"`)
+
+	docReq := httptest.NewRequest(http.MethodGet, "/docs/overview", nil)
+	docRes := httptest.NewRecorder()
+	mux.ServeHTTP(docRes, docReq)
+	require.Equal(t, http.StatusOK, docRes.Code)
+	require.Contains(t, docRes.Body.String(), `"slug":"overview"`)
+	require.Contains(t, docRes.Body.String(), "ARC-AGI Module Overview")
 }

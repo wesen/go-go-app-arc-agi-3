@@ -18,10 +18,16 @@ func (m *Module) buildReflectionDocument() *ReflectionDocument {
 		},
 		Docs: []ReflectionDocLink{
 			{
-				ID:          "arc-module-architecture",
-				Title:       "ARC-AGI backend module architecture guide",
-				Path:        "go-go-gepa/ttmp/2026/02/27/GEPA-12-ARC-AGI-OS-BACKEND-MODULE--arc-agi-backend-module-integration-for-go-go-os-and-wesen-os/design-doc/01-arc-agi-backend-module-architecture-and-implementation-guide.md",
-				Description: "Intern onboarding and implementation design reference",
+				ID:          "arc-docs-overview",
+				Title:       "ARC-AGI Module Overview",
+				URL:         basePath + "/docs/overview",
+				Description: "Backend architecture and ownership boundaries",
+			},
+			{
+				ID:          "arc-repo-guide",
+				Title:       "ARC-AGI app module user guide",
+				Path:        "go-go-app-arc-agi-3/docs/arc-agi-app-module-user-guide.md",
+				Description: "Repository-level implementation and usage guide",
 			},
 		},
 		APIs: []ReflectionAPI{
@@ -36,6 +42,8 @@ func (m *Module) buildReflectionDocument() *ReflectionDocument {
 			{ID: "sessions-events", Method: http.MethodGet, Path: basePath + "/sessions/{session_id}/events", ResponseSchema: "arc.sessions.events.response.v1"},
 			{ID: "sessions-timeline", Method: http.MethodGet, Path: basePath + "/sessions/{session_id}/timeline", ResponseSchema: "arc.sessions.timeline.response.v1"},
 			{ID: "schema-get", Method: http.MethodGet, Path: basePath + "/schemas/{schema_id}", ResponseSchema: "json-schema"},
+			{ID: "docs-list", Method: http.MethodGet, Path: basePath + "/docs"},
+			{ID: "docs-get", Method: http.MethodGet, Path: basePath + "/docs/{slug}"},
 		},
 		Schemas: []ReflectionSchemaRef{
 			{ID: "arc.health.response.v1", Format: "json-schema", URI: basePath + "/schemas/arc.health.response.v1"},
