@@ -6,6 +6,9 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/go-go-golems/go-go-os-backend/pkg/docmw"
+	"github.com/pkg/errors"
 )
 
 type Module struct {
@@ -14,6 +17,8 @@ type Module struct {
 	client   ArcAPIClient
 	events   *SessionEventStore
 	sessions *SessionStore
+	docStore *docmw.DocStore
+	docErr   error
 }
 
 func NewModule(config ModuleConfig) (*Module, error) {
@@ -30,12 +35,15 @@ func NewModuleWithRuntime(config ModuleConfig, driver ArcRuntimeDriver) (*Module
 		return nil, fmt.Errorf("arc runtime driver is nil")
 	}
 	config = normalizeConfig(config)
+	docStore, docErr := loadDocStore()
 	return &Module{
 		config:   config,
 		driver:   driver,
 		client:   NewHTTPArcAPIClient(driver, config.RequestTimeout, config.APIKey),
 		events:   NewSessionEventStore(config.MaxSessionEvents),
 		sessions: NewSessionStore(),
+		docStore: docStore,
+		docErr:   docErr,
 	}, nil
 }
 
@@ -102,6 +110,7 @@ func (m *Module) Manifest() Manifest {
 			"actions",
 			"timeline",
 			"reflection",
+			"docs",
 		},
 	}
 }
@@ -117,12 +126,20 @@ func (m *Module) MountRoutes(mux *http.ServeMux) error {
 	mux.HandleFunc("/sessions", m.handleSessions)
 	mux.HandleFunc("/sessions/", m.handleSessionsSubresource)
 	mux.HandleFunc("/schemas/", m.handleSchemaByID)
+	if m.docStore != nil {
+		if err := docmw.MountRoutes(mux, m.docStore); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
 func (m *Module) Init(ctx context.Context) error {
 	if m == nil {
 		return fmt.Errorf("arc module is nil")
+	}
+	if m.docErr != nil {
+		return errors.Wrap(m.docErr, "load arc docs store")
 	}
 	return m.driver.Init(ctx)
 }
@@ -158,4 +175,8 @@ func (m *Module) Reflection(context.Context) (*ReflectionDocument, error) {
 		return nil, fmt.Errorf("reflection is disabled for module %q", AppID)
 	}
 	return m.buildReflectionDocument(), nil
+}
+
+func (m *Module) DocStore() *docmw.DocStore {
+	return m.docStore
 }
