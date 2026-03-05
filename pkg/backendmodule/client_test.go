@@ -84,9 +84,9 @@ func TestHTTPArcAPIClientReset_DoesNotDoubleResetWhenActive(t *testing.T) {
 
 func TestNormalizeActionName_DirectionalAliases(t *testing.T) {
 	tests := []struct {
-		name  string
-		in    string
-		want  string
+		name string
+		in   string
+		want string
 	}{
 		{name: "up-lower", in: "up", want: "ACTION1"},
 		{name: "up-upper", in: "UP", want: "ACTION1"},
