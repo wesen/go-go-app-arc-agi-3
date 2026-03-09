@@ -30,8 +30,8 @@ export const ARC_DEMO_STACK: CardStackDefinition = {
   plugin: {
     bundleCode: ARC_DEMO_PLUGIN_BUNDLE,
     capabilities: {
-      domain: ['arc'],
-      system: ['notify'],
+      domain: ['arc', 'arcBridge'],
+      system: ['notify.show'],
     },
   },
   cards: Object.fromEntries(ARC_DEMO_CARD_META.map((card) => [card.id, toPluginCard(card)])),

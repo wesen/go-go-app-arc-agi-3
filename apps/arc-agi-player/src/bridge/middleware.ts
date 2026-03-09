@@ -1,5 +1,5 @@
 import { showToast } from '@hypercard/engine';
-import { authorizeDomainIntent, ingestRuntimeIntent } from '@hypercard/hypercard-runtime';
+import { authorizeDomainIntent, ingestRuntimeAction } from '@hypercard/hypercard-runtime';
 import type { Dispatch, Middleware, UnknownAction } from '@reduxjs/toolkit';
 import {
   arcCommandFailed,
@@ -379,12 +379,11 @@ function mirrorRuntimeSessionState(
   }
 
   dispatch(
-    ingestRuntimeIntent({
+    ingestRuntimeAction({
       sessionId: runtimeSessionId,
       cardId: meta.cardId ?? 'home',
-      intent: {
-        scope: 'session',
-        actionType: 'patch',
+      action: {
+        type: 'filters.patch',
         payload,
       },
     }),
