@@ -55,11 +55,11 @@ function buildDemoCardWindowPayload(reason?: LaunchReason): OpenWindowPayload {
     icon: '🃏',
     bounds: { x: 120, y: 44, w: 760, h: 560 },
     content: {
-      kind: 'card',
-      card: {
-        stackId: ARC_DEMO_STACK.id,
-        cardId: ARC_DEMO_STACK.homeCard,
-        cardSessionId: `${ARC_SESSION_PREFIX}${instanceId}`,
+      kind: 'surface',
+      surface: {
+        bundleId: ARC_DEMO_STACK.id,
+        surfaceId: ARC_DEMO_STACK.homeSurface,
+        surfaceSessionId: `${ARC_SESSION_PREFIX}${instanceId}`,
       },
     },
     dedupeKey: reason === 'startup' ? 'arc-agi-player:demo:startup' : undefined,
@@ -100,9 +100,9 @@ function ArcLauncherFolderWindow({
 function createArcDemoCardAdapter(): WindowContentAdapter {
   return {
     id: 'arc-agi-player.demo-card-window',
-    canRender: (window) => window.content.kind === 'card' && window.content.card?.stackId === ARC_DEMO_STACK.id,
+    canRender: (window) => window.content.kind === 'surface' && window.content.surface?.bundleId === ARC_DEMO_STACK.id,
     render: (window) => {
-      if (window.content.kind !== 'card' || !window.content.card || window.content.card.stackId !== ARC_DEMO_STACK.id) {
+      if (window.content.kind !== 'surface' || !window.content.surface || window.content.surface.bundleId !== ARC_DEMO_STACK.id) {
         return null;
       }
 
@@ -111,8 +111,8 @@ function createArcDemoCardAdapter(): WindowContentAdapter {
           <ArcPendingIntentEffectHost />
           <RuntimeSurfaceSessionHost
             windowId={window.id}
-            sessionId={window.content.card.cardSessionId}
-            stack={ARC_DEMO_STACK}
+            sessionId={window.content.surface.surfaceSessionId}
+            bundle={ARC_DEMO_STACK}
           />
         </>
       );
