@@ -1,5 +1,5 @@
 export const ARC_DEMO_PLUGIN_BUNDLE = `
-defineStackBundle(({ ui }) => {
+defineRuntimeBundle(({ ui }) => {
   function asRecord(value) {
     return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
   }
@@ -78,7 +78,7 @@ defineStackBundle(({ ui }) => {
       arcLastError: '',
       arcAvailableGames: [],
     },
-    cards: {
+    surfaces: {
       home: {
         render({ state }) {
           const info = arcSessionInfo(state);
